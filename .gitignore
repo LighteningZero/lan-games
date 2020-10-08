@@ -1,0 +1,15 @@
+# exe
+*.out
+*.exe
+
+# old file 
+chat.cc
+killing.cc
+
+# VS Code
+.vscode/
+
+# store
+*.json
+*.list
+
