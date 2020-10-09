@@ -9,12 +9,11 @@
 #include <seasocks/WebSocket.h>
 #include <seasocks/util/Json.h>
 
-using namespace std;
 using namespace seasocks;
 
-auto str_replace_all(string& source, string f, string t) {
-    string res;
-    size_t match = 0;
+auto str_replace_all(std::string& source, std::string f, std::string t) {
+    std::string res;
+    std::size_t match = 0;
     for (auto i = 0; i < source.size(); ++i) {
         if (source[i] == f[match]) {
             match += 1;
@@ -37,22 +36,22 @@ auto str_replace_all(string& source, string f, string t) {
     source = res;
 }
 
-bool str_start_with(string source, string x) {
+bool str_start_with(std::string source, std::string x) {
     if (source.size() < x.size())
         return false;
     return source.substr(0, x.size()) == x;
 }
 
-bool str_end_with(string source, string x) {
+bool str_end_with(std::string source, std::string x) {
     if (source.size() < x.size())
         return false;
     return source.substr(source.size() - x.size(), x.size()) == x;
 }
 
-set<string> online_users;
+std::set<std::string> online_users;
 
-string get_username(string name) {
-    name = name.substr(0, min(name.size(), 80UL));
+std::string get_username(std::string name) {
+    name = name.substr(0, std::min(name.size(), 80UL));
 
     str_replace_all(name, "*", "+");
     str_replace_all(name, "@sudo", "**");
@@ -71,8 +70,8 @@ string get_username(string name) {
         return name;
 }
 
-string format_msg(string msg, string from, bool is_private = false) {
-    stringstream ss;
+std::string format_msg(std::string msg, std::string from, bool is_private = false) {
+    std::stringstream ss;
     ss << "{";
     jsonKeyPairToStream(ss, "from", from);
     ss << ",";
@@ -83,20 +82,20 @@ string format_msg(string msg, string from, bool is_private = false) {
     jsonKeyPairToStream(ss, "time", time(nullptr));
     ss << "}";
 
-    string res;
-    getline(ss, res);
+    std::string res;
+    std::getline(ss, res);
     return res;
 }
 
-bool user_match(string expr, string username, string from) {
+bool user_match(std::string expr, std::string username, std::string from) {
     if (expr == "@a")
         return true;
 
     if (str_start_with(expr, "@r")) {
         expr = expr.substr(3);
         expr.pop_back();
-        regex r(expr);
-        return regex_match(username, r);
+        std::regex r(expr);
+        return std::regex_match(username, r);
     }
 
     if (str_start_with(expr, "@i")) {
@@ -119,10 +118,10 @@ bool user_match(string expr, string username, string from) {
 
 namespace cmd {
 
-vector<string> disabled_commands;
+std::vector<std::string> disabled_commands;
 
-string rename(const shared_ptr<Credentials>& source, const string& new_name) {
-    string username = new_name;
+std::string rename(const std::shared_ptr<Credentials>& source, const std::string& new_name) {
+    std::string username = new_name;
     if (str_end_with(username, "@sudo"))
         source->attributes["is_admin"] = "yes";
     else
@@ -138,11 +137,11 @@ string rename(const shared_ptr<Credentials>& source, const string& new_name) {
     return fmt::format("Login Success. Now you are {}.", username);
 }
 
-void send_message_cb(WebSocket* s, const string& msg) {
+void send_message_cb(WebSocket* s, const std::string& msg) {
     s->send(format_msg(msg, "Command Block"));
 }
 
-void send_message_sys(WebSocket* s, const string& msg) {
+void send_message_sys(WebSocket* s, const std::string& msg) {
     s->send(format_msg(msg, "System"));
 }
 
@@ -154,7 +153,7 @@ void send_message_cmd_not_perm(WebSocket* s) {
     send_message_cb(s, "You have no permission to preform this action.");
 }
 
-string private_msg(const string& from, const string& expr, const string& msg, const set<WebSocket*>& all_socks) {
+std::string private_msg(const std::string& from, const std::string& expr, const std::string& msg, const std::set<WebSocket*>& all_socks) {
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
             x->send(format_msg(msg, from, true));
@@ -164,8 +163,8 @@ string private_msg(const string& from, const string& expr, const string& msg, co
     return fmt::format("Private message sent. Content:\n{}.", msg);
 }
 
-string kill_user(const string& from, const string& expr, const set<WebSocket*>& all_socks) {
-    string killed_users = "[";
+std::string kill_user(const std::string& from, const std::string& expr, const std::set<WebSocket*>& all_socks) {
+    std::string killed_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
             send_message_sys(x, "You are killed.");
@@ -181,8 +180,8 @@ string kill_user(const string& from, const string& expr, const set<WebSocket*>& 
     return fmt::format("User {} were killed.", killed_users);
 }
 
-string make_user_silence(const string& from, const string& expr, const set<WebSocket*>& all_socks) {
-    string matched_users = "[";
+std::string make_user_silence(const std::string& from, const std::string& expr, const std::set<WebSocket*>& all_socks) {
+    std::string matched_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
             x->credentials()->attributes["can_talk"] = "no";
@@ -198,8 +197,8 @@ string make_user_silence(const string& from, const string& expr, const set<WebSo
     return fmt::format("User {} now couldn't not say another word more.", matched_users);
 }
 
-string list_online_user(const string& from, const string& expr) {
-    string matched_users = "[";
+std::string list_online_user(const std::string& from, const std::string& expr) {
+    std::string matched_users = "[";
 
     for (auto x : online_users) {
         if (user_match(expr, x, from)) {
@@ -211,17 +210,17 @@ string list_online_user(const string& from, const string& expr) {
         matched_users.pop_back();
 
     matched_users.push_back(']');
-    return fmt::format("Now user {} are on line.", matched_users);
+    return fmt::format("Now user {} are online.", matched_users);
 }
 
-bool check_command(const string& cmd) {
+bool check_command(const std::string& cmd) {
     auto p = find(disabled_commands.begin(), disabled_commands.end(), cmd);
     if (p != disabled_commands.end())
         return false;
     return true;
 }
 
-string enable_command(const string& cmd) {
+std::string enable_command(const std::string& cmd) {
     auto p = find(disabled_commands.begin(), disabled_commands.end(), cmd);
     if (p != disabled_commands.end())
         disabled_commands.erase(p);
@@ -229,7 +228,7 @@ string enable_command(const string& cmd) {
     return fmt::format("Command {} enabled.", cmd);
 }
 
-string disable_command(const string& cmd) {
+std::string disable_command(const std::string& cmd) {
     auto p = find(disabled_commands.begin(), disabled_commands.end(), cmd);
     if (p == disabled_commands.end())
         disabled_commands.push_back(cmd);
@@ -237,11 +236,11 @@ string disable_command(const string& cmd) {
     return fmt::format("Command {} disabled.", cmd);
 }
 
-void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks) {
-    string from = s->credentials()->username;
-    stringstream ss;
+void run_command(const std::string& c, WebSocket* s, const std::set<WebSocket*>& all_socks) {
+    std::string from = s->credentials()->username;
+    std::stringstream ss;
     ss << c;
-    string command_mark;
+    std::string command_mark;
     ss >> command_mark;
     if (command_mark == "/rename") {
         if (!check_command("rename")) {
@@ -249,9 +248,9 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string new_name;
+        std::string new_name;
         ss.get();
-        getline(ss, new_name);
+        std::getline(ss, new_name);
         send_message_cb(s, cmd::rename(s->credentials(), new_name));
     }
 
@@ -271,10 +270,10 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string to, msg;
+        std::string to, msg;
         ss >> to;
         ss.get();
-        getline(ss, msg);
+        std::getline(ss, msg);
         msg = msg.substr(1, msg.size() - 2);
         send_message_cb(s, cmd::private_msg(from, to, msg, all_socks));
         return;
@@ -286,7 +285,7 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string target;
+        std::string target;
         ss >> target;
         if (target == "")
             target = "@a";
@@ -305,7 +304,7 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string target;
+        std::string target;
         ss >> target;
         send_message_cb(s, cmd::kill_user(from, target, all_socks));
         return;
@@ -322,7 +321,7 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string target;
+        std::string target;
         ss >> target;
         send_message_cb(s, cmd::make_user_silence(from, target, all_socks));
         return;
@@ -334,7 +333,7 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string target;
+        std::string target;
         ss >> target;
         send_message_cb(s, cmd::enable_command(target));
         return;
@@ -346,7 +345,7 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
             return;
         }
 
-        string target;
+        std::string target;
         ss >> target;
         send_message_cb(s, cmd::disable_command(target));
         return;
@@ -383,10 +382,10 @@ public:
     }
 
 private:
-    set<WebSocket*> _connections;
+    std::set<WebSocket*> _connections;
 
-    void _say(string msg, string from) {
-        string fmsg = format_msg(msg, from);
+    void _say(std::string msg, std::string from) {
+        std::string fmsg = format_msg(msg, from);
         for (auto c : this->_connections) {
             c->send(fmsg);
         }
@@ -412,10 +411,10 @@ struct NotFoundHandler : PageHandler {
 };
 
 int main() {
-    Server server(make_shared<PrintfLogger>(Logger::Level::Warning));
-    server.addPageHandler(make_shared<ChatroomAuthHandler>());
-    server.addPageHandler(make_shared<NotFoundHandler>());
-    server.addWebSocketHandler("/chat", make_shared<ChatHandler>(), true);
+    Server server(std::make_shared<PrintfLogger>(Logger::Level::Warning));
+    server.addPageHandler(std::make_shared<ChatroomAuthHandler>());
+    server.addPageHandler(std::make_shared<NotFoundHandler>());
+    server.addWebSocketHandler("/chat", std::make_shared<ChatHandler>(), true);
     server.startListening(8010);
     server.loop();
     return 0;
