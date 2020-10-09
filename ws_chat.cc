@@ -251,8 +251,10 @@ std::string set_user_attributes(const std::string& from, const std::string& expr
                                 const std::string& val, const std::set<seasocks::WebSocket*>& all_socks) {
     std::string matched_users("[");
     for (auto s : all_socks) {
-        if (user_match(expr, s->credentials()->username, from))
+        if (user_match(expr, s->credentials()->username, from)) {
             s->credentials()->attributes[key] = val;
+            matched_users += s->credentials()->username + ",";
+        }
     }
 
     if (matched_users.size() > 1)
