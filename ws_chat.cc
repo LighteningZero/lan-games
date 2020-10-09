@@ -396,6 +396,22 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         msg = msg.substr(1, msg.size() - 2);
         send_msg(msg, "Anonymous User", all_socks);
     }
+
+    if (command_mark == "/set") {
+        if (s->credentials()->attributes["is_admin"] != "yes") {
+            send_message_cmd_not_perm(s);
+            return;
+        }
+
+        if (!check_command("set")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
+        std::string expr, key, val;
+        ss >> expr >> key >> val;
+        send_message_cmd_res(s, c, set_user_attributes(from, expr, key, val, all_socks));
+    }
 }
 
 } // namespace cmd
