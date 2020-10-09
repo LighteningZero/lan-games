@@ -1,7 +1,7 @@
 let ws;
 let username;
 let time_stamp = 0;
-let ip = new String("ws://172.32.5.177:8010/chat");
+let ip = new String("ws://wschat.szdytom.repl.co/chat");
 
 function clear_message() {
     $("#message").empty();
