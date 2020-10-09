@@ -114,6 +114,11 @@ bool user_match(std::string expr, std::string username, std::string from) {
     return false;
 }
 
+void send_msg(const std::string& msg, const std::string& from, const std::set<seasocks::WebSocket*>& all_socks) {
+    for (auto x : all_socks)
+        x->send(format_msg(msg, from, false));
+}
+
 namespace cmd {
 
 std::vector<std::string> disabled_commands;
@@ -162,7 +167,8 @@ std::string private_msg(const std::string& from, const std::string& expr, const 
     return fmt::format("Private message sent. Content:\n{}.", msg);
 }
 
-std::string kill_user(const std::string& from, const std::string& expr, const std::set<seasocks::WebSocket*>& all_socks) {
+std::string kill_user(const std::string& from, const std::string& expr,
+                      const std::set<seasocks::WebSocket*>& all_socks) {
     std::string killed_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
@@ -179,7 +185,8 @@ std::string kill_user(const std::string& from, const std::string& expr, const st
     return fmt::format("User {} were killed.", killed_users);
 }
 
-std::string make_user_silence(const std::string& from, const std::string& expr, const std::set<seasocks::WebSocket*>& all_socks) {
+std::string make_user_silence(const std::string& from, const std::string& expr,
+                              const std::set<seasocks::WebSocket*>& all_socks) {
     std::string matched_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
@@ -348,6 +355,19 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         ss >> target;
         send_message_cb(s, cmd::disable_command(target));
         return;
+    }
+
+    if (command_mark == "/anon") {
+        if (!check_command("list")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
+        std::string msg;
+        ss.get();
+        std::getline(ss, msg);
+        msg = msg.substr(1, msg.size() - 2);
+        send_msg(msg, "Anonymous User", all_socks);
     }
 }
 
