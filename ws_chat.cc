@@ -1,6 +1,7 @@
 #include <regex>
 #include <set>
 #include <sstream>
+#include <string>
 #include <fmt/core.h>
 #include <seasocks/PageHandler.h>
 #include <seasocks/PrintfLogger.h>
@@ -235,7 +236,7 @@ std::string enable_command(const std::string& cmd) {
     if (p != disabled_commands.end())
         disabled_commands.erase(p);
 
-    return "Enabled";
+    return "Enabled.";
 }
 
 std::string disable_command(const std::string& cmd) {
@@ -243,7 +244,23 @@ std::string disable_command(const std::string& cmd) {
     if (p == disabled_commands.end())
         disabled_commands.push_back(cmd);
 
-    return "Disabled";
+    return "Disabled.";
+}
+
+std::string set_user_attributes(const std::string from, const std::string& expr, const std::string& key,
+                                const std::string& val, const std::set<seasocks::WebSocket*> all_socks) {
+    std::string matched_users("[");
+    for (auto s : all_socks) {
+        if (user_match(expr, s->credentials()->username, from)) {
+            s->credentials()->attributes[key] = val;
+        }
+    }
+
+    if (matched_users.size() > 1)
+        matched_users.pop_back();
+
+    matched_users.push_back(']');
+    return matched_users;
 }
 
 void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<seasocks::WebSocket*>& all_socks) {
