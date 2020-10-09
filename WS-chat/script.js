@@ -112,7 +112,11 @@ function login() {
 
 function send() {
     let data = $("#send").val();
-    if (data == "/clear" || data == "/cls") {
+    if (data === "") {
+        return;
+    }
+
+    if (data === "/clear" || data === "/cls") {
         clear_message();
         clear_send();
         return;
