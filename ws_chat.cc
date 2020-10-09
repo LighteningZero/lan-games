@@ -137,7 +137,7 @@ std::string rename(const std::shared_ptr<seasocks::Credentials>& source, const s
     online_users.erase(source->username);
     source->username = username;
     online_users.insert(source->username);
-    return username;
+    return fmt::format("Login success. Now your name is '{}'", username);
 }
 
 void send_message_cb(seasocks::WebSocket* s, const std::string& msg) {
@@ -261,7 +261,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         std::string new_name;
         ss.get();
         std::getline(ss, new_name);
-        send_message_cmd_res(s, c, cmd::rename(s->credentials(), new_name));
+        send_message_cb(s, cmd::rename(s->credentials(), new_name));
     }
 
     if (command_mark == "/disconnect") {
