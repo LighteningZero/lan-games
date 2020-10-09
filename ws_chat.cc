@@ -72,10 +72,20 @@ string get_username(string name) {
 }
 
 string format_msg(string msg, string from, bool is_private = false) {
-    time_t now = time(nullptr);
-    char* now_time = new char[128];
-    strftime(now_time, 128, "%m-%d %H:%M:%S", localtime(&now));
-    return fmt::format("[{} @ {}{}] {}", from, now_time, is_private ? " (PRIVATE)" : "", msg);
+    stringstream ss;
+    ss << "{";
+    jsonKeyPairToStream(ss, "from", from);
+    ss << ",";
+    jsonKeyPairToStream(ss, "msg", msg);
+    ss << ",";
+    jsonKeyPairToStream(ss, "is_private", is_private);
+    ss << ",";
+    jsonKeyPairToStream(ss, "time", time(nullptr));
+    ss << "}";
+
+    string res;
+    getline(ss, res);
+    return res;
 }
 
 bool user_match(string expr, string username, string from) {
@@ -109,6 +119,8 @@ bool user_match(string expr, string username, string from) {
 
 namespace cmd {
 
+vector<string> disabled_commands;
+
 string rename(const shared_ptr<Credentials>& source, const string& new_name) {
     string username = new_name;
     if (str_end_with(username, "@sudo"))
@@ -134,6 +146,14 @@ void send_message_sys(WebSocket* s, const string& msg) {
     s->send(format_msg(msg, "System"));
 }
 
+void send_message_cmd_disabled(WebSocket* s) {
+    s->send(format_msg("This command has been disabled.", "System"));
+}
+
+void send_message_cmd_not_perm(WebSocket* s) {
+    s->send(format_msg("You have no permission to preform this action.", "System"));
+}
+
 string private_msg(const string& from, const string& expr, const string& msg, const set<WebSocket*>& all_socks) {
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
@@ -141,7 +161,7 @@ string private_msg(const string& from, const string& expr, const string& msg, co
         }
     }
 
-    return "Private message sent.";
+    return fmt::format("Private message sent. Content:\n{}.", msg);
 }
 
 string kill_user(const string& from, const string& expr, const set<WebSocket*>& all_socks) {
@@ -194,6 +214,29 @@ string list_online_user(const string& from, const string& expr) {
     return fmt::format("Now user {} are on line.", matched_users);
 }
 
+bool check_command(const string& cmd) {
+    auto p = find(disabled_commands.begin(), disabled_commands.end(), cmd);
+    if (p != disabled_commands.end())
+        return false;
+    return true;
+}
+
+string enable_command(const string& cmd) {
+    auto p = find(disabled_commands.begin(), disabled_commands.end(), cmd);
+    if (p != disabled_commands.end())
+        disabled_commands.erase(p);
+
+    return fmt::format("Command {} enabled.", cmd);
+}
+
+string disable_command(const string& cmd) {
+    auto p = find(disabled_commands.begin(), disabled_commands.end(), cmd);
+    if (p == disabled_commands.end())
+        disabled_commands.push_back(cmd);
+
+    return fmt::format("Command {} disabled.", cmd);
+}
+
 void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks) {
     string from = s->credentials()->username;
     stringstream ss;
@@ -201,6 +244,11 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
     string command_mark;
     ss >> command_mark;
     if (command_mark == "/rename") {
+        if (!check_command("rename")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
         string new_name;
         ss.get();
         getline(ss, new_name);
@@ -208,11 +256,21 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
     }
 
     if (command_mark == "/disconnect") {
+        if (!check_command("disconnect")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
         s->close();
         return;
     }
 
     if (command_mark == "/msg") {
+        if (!check_command("msg")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
         string to, msg;
         ss >> to;
         ss.get();
@@ -223,6 +281,11 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
     }
 
     if (command_mark == "/list") {
+        if (!check_command("list")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
         string target;
         ss >> target;
         if (target == "")
@@ -233,7 +296,12 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
 
     if (command_mark == "/kill") {
         if (s->credentials()->attributes["is_admin"] != "yes") {
-            s->send(format_msg("You have no permission to preform this action.", "Command Block"));
+            send_message_cmd_not_perm(s);
+            return;
+        }
+
+        if (!check_command("kill")) {
+            send_message_cmd_disabled(s);
             return;
         }
 
@@ -245,13 +313,42 @@ void run_command(const string& c, WebSocket* s, const set<WebSocket*>& all_socks
 
     if (command_mark == "/silence") {
         if (s->credentials()->attributes["is_admin"] != "yes") {
-            s->send(format_msg("You have no permission to preform this action.", "Command Block"));
+            send_message_cmd_not_perm(s);
+            return;
+        }
+
+        if (!check_command("silence")) {
+            send_message_cmd_disabled(s);
             return;
         }
 
         string target;
         ss >> target;
         send_message_cb(s, cmd::make_user_silence(from, target, all_socks));
+        return;
+    }
+
+    if (command_mark == "/enable") {
+        if (s->credentials()->attributes["is_admin"] != "yes") {
+            send_message_cmd_not_perm(s);
+            return;
+        }
+
+        string target;
+        ss >> target;
+        send_message_cb(s, cmd::enable_command(target));
+        return;
+    }
+
+    if (command_mark == "/disable") {
+        if (s->credentials()->attributes["is_admin"] != "yes") {
+            send_message_cmd_not_perm(s);
+            return;
+        }
+
+        string target;
+        ss >> target;
+        send_message_cb(s, cmd::disable_command(target));
         return;
     }
 }
@@ -282,7 +379,7 @@ public:
     void onDisconnect(WebSocket* s) override {
         _connections.erase(s);
         online_users.erase(s->credentials()->username);
-        cmd::send_message_sys(s, fmt::format("User {} left the chatroom.", s->credentials()->username));
+        this->_say(fmt::format("User {} left the chatroom.", s->credentials()->username), "System");
     }
 
 private:
