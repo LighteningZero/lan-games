@@ -52,14 +52,14 @@ function write_message(data) {
         "<div class='msg'>" +
 
         "<span class='msg-from " +
-        (data.from == "INFO" ? "msg-from-info " : "") +
-        (data.from == "Command Block" ? "msg-from-cb " : "") +
+        (data.from === "INFO" ? "msg-from-info " : "") +
+        (data.from === "Command Block" ? "msg-from-cb " : "") +
         (data.is_private ? "msg-private " : "") +
         "'>" +
 
         data.from +
         "<span class='msg-time'> " +
-        (data.time == -1 ? "" : format_time(new Date(data.time * 1000))) +
+        (data.time === -1 ? "" : format_time(new Date(data.time * 1000))) +
         "</span>" +
         "</span>" +
         "<br>" +
@@ -122,7 +122,7 @@ function send() {
         return;
     }
 
-    if (ws.readyState == 1) {
+    if (ws.readyState === 1) {
         if (data[0] === '/') {
             ws.send(data);
         } else {
@@ -150,7 +150,7 @@ $(document).ready(
     function () {
         document.onkeydown = function () {
             let key_event = window.event;
-            if (key_event.keyCode == 13 && key_event.ctrlKey) {
+            if (key_event.keyCode === 13 && key_event.ctrlKey) {
                 send();
             }
         }
