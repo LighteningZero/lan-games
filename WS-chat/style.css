@@ -26,14 +26,16 @@ button {
 }
 
 #message {
-    background-color: #f0f0f0;
+    background-color: #f2f2f2;
     margin: 0;
     font-size: 20px;
     padding: 20px;
-    width: 100vw;
     height: 70vh;
+    width: calc(100vw - 20px);
     color: #000;
     font-family: 'Fira Code', Consolas, monospace;
+    overflow-y: scroll;
+    word-wrap: break-word;
 }
 
 #send {
@@ -59,4 +61,39 @@ button {
     position: absolute;
     top: 20px;
     right: 20px;
+}
+
+.msg {
+    margin-top: 15px;
+}
+
+.msg-content {
+    color: #606266;
+}
+
+.msg-private::after {
+    content: " WHISPER";
+    color: #F7BA2A;
+}
+
+.msg-from {
+    font-weight: 600;
+    color: #303133;
+}
+
+.msg-time {
+    font-weight: normal;
+    color: #C0C4CC;
+}
+
+.msg-from::before {
+    content: "@ ";
+}
+
+.msg-from-info {
+    color: #5bb2ec;
+}
+
+.msg-from-cb {
+    color: #000000;
 }
