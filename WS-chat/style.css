@@ -20,6 +20,10 @@ button {
     color: #fff;
 }
 
+pre {
+    margin: 0;
+}
+
 .note {
     margin-right: 5px;
     color: #888888;
