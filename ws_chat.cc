@@ -176,7 +176,7 @@ std::string kill_user(const std::string& from, const std::string& expr,
     std::string killed_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
-            send_message_sys(x, "You are killed.");
+            send_message_sys(x, "You were killed.");
             killed_users += x->credentials()->username + ",";
             x->close();
         }
@@ -357,6 +357,12 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
 
         std::string target;
         ss >> target;
+
+        if (target == "disable") {
+            send_message_cmd_res(s, c, "Can not disable /disable");
+            return;
+        }
+
         send_message_cmd_res(s, c, cmd::disable_command(target));
         return;
     }
