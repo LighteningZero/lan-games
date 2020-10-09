@@ -137,7 +137,7 @@ std::string rename(const std::shared_ptr<seasocks::Credentials>& source, const s
     online_users.erase(source->username);
     source->username = username;
     online_users.insert(source->username);
-    return fmt::format("Login Success. Now you are {}.", username);
+    return username;
 }
 
 void send_message_cb(seasocks::WebSocket* s, const std::string& msg) {
@@ -156,6 +156,10 @@ void send_message_cmd_not_perm(seasocks::WebSocket* s) {
     send_message_cb(s, "You have no permission to preform this action.");
 }
 
+void send_message_cmd_res(seasocks::WebSocket* s, const std::string& command, const std::string& res) {
+    send_message_cb(s, fmt::format(">> {}<br><- {}", command, res));
+}
+
 std::string private_msg(const std::string& from, const std::string& expr, const std::string& msg,
                         const std::set<seasocks::WebSocket*>& all_socks) {
     for (auto x : all_socks) {
@@ -164,7 +168,7 @@ std::string private_msg(const std::string& from, const std::string& expr, const 
         }
     }
 
-    return fmt::format("Private message sent. Content:\n{}.", msg);
+    return "Sent";
 }
 
 std::string kill_user(const std::string& from, const std::string& expr,
@@ -182,7 +186,7 @@ std::string kill_user(const std::string& from, const std::string& expr,
         killed_users.pop_back();
 
     killed_users.push_back(']');
-    return fmt::format("User {} were killed.", killed_users);
+    return killed_users;
 }
 
 std::string make_user_silence(const std::string& from, const std::string& expr,
@@ -200,7 +204,7 @@ std::string make_user_silence(const std::string& from, const std::string& expr,
         matched_users.pop_back();
 
     matched_users.push_back(']');
-    return fmt::format("User {} now couldn't not say another word more.", matched_users);
+    return matched_users;
 }
 
 std::string list_online_user(const std::string& from, const std::string& expr) {
@@ -216,7 +220,7 @@ std::string list_online_user(const std::string& from, const std::string& expr) {
         matched_users.pop_back();
 
     matched_users.push_back(']');
-    return fmt::format("Now user {} are online.", matched_users);
+    return matched_users;
 }
 
 bool check_command(const std::string& cmd) {
@@ -231,7 +235,7 @@ std::string enable_command(const std::string& cmd) {
     if (p != disabled_commands.end())
         disabled_commands.erase(p);
 
-    return fmt::format("Command {} enabled.", cmd);
+    return "Enabled";
 }
 
 std::string disable_command(const std::string& cmd) {
@@ -239,7 +243,7 @@ std::string disable_command(const std::string& cmd) {
     if (p == disabled_commands.end())
         disabled_commands.push_back(cmd);
 
-    return fmt::format("Command {} disabled.", cmd);
+    return "Disabled";
 }
 
 void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<seasocks::WebSocket*>& all_socks) {
@@ -257,7 +261,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         std::string new_name;
         ss.get();
         std::getline(ss, new_name);
-        send_message_cb(s, cmd::rename(s->credentials(), new_name));
+        send_message_cmd_res(s, c, cmd::rename(s->credentials(), new_name));
     }
 
     if (command_mark == "/disconnect") {
@@ -281,7 +285,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         ss.get();
         std::getline(ss, msg);
         msg = msg.substr(1, msg.size() - 2);
-        send_message_cb(s, cmd::private_msg(from, to, msg, all_socks));
+        send_message_cmd_res(s, c, cmd::private_msg(from, to, msg, all_socks));
         return;
     }
 
@@ -296,7 +300,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         if (target == "")
             target = "@a";
 
-        send_message_cb(s, cmd::list_online_user(from, target));
+        send_message_cmd_res(s, c, cmd::list_online_user(from, target));
     }
 
     if (command_mark == "/kill") {
@@ -312,7 +316,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
 
         std::string target;
         ss >> target;
-        send_message_cb(s, cmd::kill_user(from, target, all_socks));
+        send_message_cmd_res(s, c, cmd::kill_user(from, target, all_socks));
         return;
     }
 
@@ -329,7 +333,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
 
         std::string target;
         ss >> target;
-        send_message_cb(s, cmd::make_user_silence(from, target, all_socks));
+        send_message_cmd_res(s, c, cmd::make_user_silence(from, target, all_socks));
         return;
     }
 
@@ -341,7 +345,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
 
         std::string target;
         ss >> target;
-        send_message_cb(s, cmd::enable_command(target));
+        send_message_cmd_res(s, c, cmd::enable_command(target));
         return;
     }
 
@@ -353,7 +357,7 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
 
         std::string target;
         ss >> target;
-        send_message_cb(s, cmd::disable_command(target));
+        send_message_cmd_res(s, c, cmd::disable_command(target));
         return;
     }
 
@@ -403,11 +407,8 @@ public:
 private:
     std::set<seasocks::WebSocket*> _connections;
 
-    void _say(std::string msg, std::string from) {
-        std::string fmsg = format_msg(msg, from);
-        for (auto c : this->_connections) {
-            c->send(fmsg);
-        }
+    void _say(const std::string& msg, const std::string& from) {
+        send_msg(msg, from, this->_connections);
     }
 };
 
