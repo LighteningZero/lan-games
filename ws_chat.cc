@@ -9,8 +9,6 @@
 #include <seasocks/WebSocket.h>
 #include <seasocks/util/Json.h>
 
-using namespace seasocks;
-
 auto str_replace_all(std::string& source, std::string f, std::string t) {
     std::string res;
     std::size_t match = 0;
@@ -73,13 +71,13 @@ std::string get_username(std::string name) {
 std::string format_msg(std::string msg, std::string from, bool is_private = false) {
     std::stringstream ss;
     ss << "{";
-    jsonKeyPairToStream(ss, "from", from);
+    seasocks::jsonKeyPairToStream(ss, "from", from);
     ss << ",";
-    jsonKeyPairToStream(ss, "msg", msg);
+    seasocks::jsonKeyPairToStream(ss, "msg", msg);
     ss << ",";
-    jsonKeyPairToStream(ss, "is_private", is_private);
+    seasocks::jsonKeyPairToStream(ss, "is_private", is_private);
     ss << ",";
-    jsonKeyPairToStream(ss, "time", time(nullptr));
+    seasocks::jsonKeyPairToStream(ss, "time", time(nullptr));
     ss << "}";
 
     std::string res;
@@ -120,7 +118,7 @@ namespace cmd {
 
 std::vector<std::string> disabled_commands;
 
-std::string rename(const std::shared_ptr<Credentials>& source, const std::string& new_name) {
+std::string rename(const std::shared_ptr<seasocks::Credentials>& source, const std::string& new_name) {
     std::string username = new_name;
     if (str_end_with(username, "@sudo"))
         source->attributes["is_admin"] = "yes";
@@ -137,23 +135,24 @@ std::string rename(const std::shared_ptr<Credentials>& source, const std::string
     return fmt::format("Login Success. Now you are {}.", username);
 }
 
-void send_message_cb(WebSocket* s, const std::string& msg) {
+void send_message_cb(seasocks::WebSocket* s, const std::string& msg) {
     s->send(format_msg(msg, "Command Block"));
 }
 
-void send_message_sys(WebSocket* s, const std::string& msg) {
+void send_message_sys(seasocks::WebSocket* s, const std::string& msg) {
     s->send(format_msg(msg, "System"));
 }
 
-void send_message_cmd_disabled(WebSocket* s) {
+void send_message_cmd_disabled(seasocks::WebSocket* s) {
     send_message_cb(s, "This command has been disabled.");
 }
 
-void send_message_cmd_not_perm(WebSocket* s) {
+void send_message_cmd_not_perm(seasocks::WebSocket* s) {
     send_message_cb(s, "You have no permission to preform this action.");
 }
 
-std::string private_msg(const std::string& from, const std::string& expr, const std::string& msg, const std::set<WebSocket*>& all_socks) {
+std::string private_msg(const std::string& from, const std::string& expr, const std::string& msg,
+                        const std::set<seasocks::WebSocket*>& all_socks) {
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
             x->send(format_msg(msg, from, true));
@@ -163,7 +162,7 @@ std::string private_msg(const std::string& from, const std::string& expr, const 
     return fmt::format("Private message sent. Content:\n{}.", msg);
 }
 
-std::string kill_user(const std::string& from, const std::string& expr, const std::set<WebSocket*>& all_socks) {
+std::string kill_user(const std::string& from, const std::string& expr, const std::set<seasocks::WebSocket*>& all_socks) {
     std::string killed_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
@@ -180,7 +179,7 @@ std::string kill_user(const std::string& from, const std::string& expr, const st
     return fmt::format("User {} were killed.", killed_users);
 }
 
-std::string make_user_silence(const std::string& from, const std::string& expr, const std::set<WebSocket*>& all_socks) {
+std::string make_user_silence(const std::string& from, const std::string& expr, const std::set<seasocks::WebSocket*>& all_socks) {
     std::string matched_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
@@ -236,7 +235,7 @@ std::string disable_command(const std::string& cmd) {
     return fmt::format("Command {} disabled.", cmd);
 }
 
-void run_command(const std::string& c, WebSocket* s, const std::set<WebSocket*>& all_socks) {
+void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<seasocks::WebSocket*>& all_socks) {
     std::string from = s->credentials()->username;
     std::stringstream ss;
     ss << c;
@@ -354,14 +353,14 @@ void run_command(const std::string& c, WebSocket* s, const std::set<WebSocket*>&
 
 } // namespace cmd
 
-class ChatHandler : public WebSocket::Handler {
+class ChatHandler : public seasocks::WebSocket::Handler {
 public:
-    void onConnect(WebSocket* s) override {
+    void onConnect(seasocks::WebSocket* s) override {
         _connections.insert(s);
         online_users.insert(s->credentials()->username);
     }
 
-    void onData(WebSocket* s, const char* data) override {
+    void onData(seasocks::WebSocket* s, const char* data) override {
         if (data[0] == '\0')
             return;
 
@@ -375,14 +374,14 @@ public:
         }
     }
 
-    void onDisconnect(WebSocket* s) override {
+    void onDisconnect(seasocks::WebSocket* s) override {
         _connections.erase(s);
         online_users.erase(s->credentials()->username);
         this->_say(fmt::format("User {} left the chatroom.", s->credentials()->username), "System");
     }
 
 private:
-    std::set<WebSocket*> _connections;
+    std::set<seasocks::WebSocket*> _connections;
 
     void _say(std::string msg, std::string from) {
         std::string fmsg = format_msg(msg, from);
@@ -392,26 +391,26 @@ private:
     }
 };
 
-struct ChatroomAuthHandler : PageHandler {
-    std::shared_ptr<Response> handle(const Request& request) {
-        request.credentials()->username = formatAddress(request.getRemoteAddress());
+struct ChatroomAuthHandler : seasocks::PageHandler {
+    std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) {
+        request.credentials()->username = seasocks::formatAddress(request.getRemoteAddress());
         request.credentials()->attributes["can_talk"] = "yes";
         request.credentials()->attributes["is_admin"] = "no";
-        return Response::unhandled();
+        return seasocks::Response::unhandled();
     }
 };
 
-struct NotFoundHandler : PageHandler {
-    std::shared_ptr<Response> handle(const Request& request) {
+struct NotFoundHandler : seasocks::PageHandler {
+    std::shared_ptr<seasocks::Response> handle(const seasocks::Request& request) {
         if (request.getRequestUri() != "/chat") {
-            return Response::textResponse("Server Status: Online");
+            return seasocks::Response::textResponse("Server Status: Online");
         }
-        return Response::unhandled();
+        return seasocks::Response::unhandled();
     }
 };
 
 int main() {
-    Server server(std::make_shared<PrintfLogger>(Logger::Level::Warning));
+    seasocks::Server server(std::make_shared<seasocks::PrintfLogger>(seasocks::Logger::Level::Warning));
     server.addPageHandler(std::make_shared<ChatroomAuthHandler>());
     server.addPageHandler(std::make_shared<NotFoundHandler>());
     server.addWebSocketHandler("/chat", std::make_shared<ChatHandler>(), true);
