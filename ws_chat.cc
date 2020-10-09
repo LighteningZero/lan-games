@@ -147,11 +147,11 @@ void send_message_sys(WebSocket* s, const string& msg) {
 }
 
 void send_message_cmd_disabled(WebSocket* s) {
-    s->send(format_msg("This command has been disabled.", "System"));
+    send_message_cb(s, "This command has been disabled.");
 }
 
 void send_message_cmd_not_perm(WebSocket* s) {
-    s->send(format_msg("You have no permission to preform this action.", "System"));
+    send_message_cb(s, "You have no permission to preform this action.");
 }
 
 string private_msg(const string& from, const string& expr, const string& msg, const set<WebSocket*>& all_socks) {
