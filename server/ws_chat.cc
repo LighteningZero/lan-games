@@ -10,7 +10,7 @@
 #include <seasocks/WebSocket.h>
 #include <seasocks/util/Json.h>
 
-auto str_replace_all(std::string& source, std::string f, std::string t) {
+auto str_replace_all(std::string source, const std::string& f, const std::string& t) {
     std::string res;
     std::size_t match = 0;
     for (auto i = 0; i < source.size(); ++i) {
@@ -35,13 +35,13 @@ auto str_replace_all(std::string& source, std::string f, std::string t) {
     source = res;
 }
 
-bool str_start_with(std::string source, std::string x) {
+bool str_start_with(const std::string& source, const std::string& x) {
     if (source.size() < x.size())
         return false;
     return source.substr(0, x.size()) == x;
 }
 
-bool str_end_with(std::string source, std::string x) {
+bool str_end_with(const std::string& source, const std::string& x) {
     if (source.size() < x.size())
         return false;
     return source.substr(source.size() - x.size(), x.size()) == x;
@@ -69,7 +69,7 @@ std::string get_username(std::string name) {
         return name;
 }
 
-std::string format_msg(std::string msg, std::string from, bool is_private = false) {
+std::string format_msg(const std::string& msg, const std::string& from, bool is_private = false) {
     std::stringstream ss;
     ss << "{";
     seasocks::jsonKeyPairToStream(ss, "from", from);
@@ -86,7 +86,7 @@ std::string format_msg(std::string msg, std::string from, bool is_private = fals
     return res;
 }
 
-bool user_match(std::string expr, std::string username, std::string from) {
+bool user_match(std::string expr, const std::string& username, const std::string& from) {
     if (expr == "@a")
         return true;
 
@@ -177,7 +177,7 @@ std::string kill_user(const std::string& from, const std::string& expr,
     std::string killed_users = "[";
     for (auto x : all_socks) {
         if (user_match(expr, x->credentials()->username, from)) {
-            send_message_sys(x, "You are killed.");
+            send_message_sys(x, "You were killed.");
             killed_users += x->credentials()->username + ",";
             x->close();
         }
@@ -247,8 +247,8 @@ std::string disable_command(const std::string& cmd) {
     return "Disabled.";
 }
 
-std::string set_user_attributes(const std::string from, const std::string& expr, const std::string& key,
-                                const std::string& val, const std::set<seasocks::WebSocket*> all_socks) {
+std::string set_user_attributes(const std::string& from, const std::string& expr, const std::string& key,
+                                const std::string& val, const std::set<seasocks::WebSocket*>& all_socks) {
     std::string matched_users("[");
     for (auto s : all_socks) {
         if (user_match(expr, s->credentials()->username, from)) {
@@ -375,6 +375,12 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
 
         std::string target;
         ss >> target;
+
+        if (target == "disable") {
+            send_message_cmd_res(s, c, "Can not disable /disable");
+            return;
+        }
+
         send_message_cmd_res(s, c, cmd::disable_command(target));
         return;
     }
