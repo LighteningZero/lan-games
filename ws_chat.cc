@@ -145,7 +145,7 @@ void send_message_cb(seasocks::WebSocket* s, const std::string& msg) {
 }
 
 void send_message_sys(seasocks::WebSocket* s, const std::string& msg) {
-    s->send(format_msg(msg, "System"));
+    s->send(format_msg(msg, "System Message"));
 }
 
 void send_message_cmd_disabled(seasocks::WebSocket* s) {
@@ -397,7 +397,7 @@ public:
     void onDisconnect(seasocks::WebSocket* s) override {
         _connections.erase(s);
         online_users.erase(s->credentials()->username);
-        this->_say(fmt::format("User {} left the chatroom.", s->credentials()->username), "System");
+        this->_say(fmt::format("User {} left the chatroom.", s->credentials()->username), "System Message");
     }
 
 private:
