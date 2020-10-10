@@ -1,9 +1,9 @@
+#include <iostream>
 #include <regex>
 #include <set>
 #include <sstream>
 #include <string>
 #include <fmt/core.h>
-#include <iostream>
 #include <seasocks/PageHandler.h>
 #include <seasocks/PrintfLogger.h>
 #include <seasocks/Server.h>
@@ -11,7 +11,7 @@
 #include <seasocks/WebSocket.h>
 #include <seasocks/util/Json.h>
 
-auto str_replace_all(std::string &source, const std::string& f, const std::string& t) {
+auto str_replace_all(std::string& source, const std::string& f, const std::string& t) {
     std::string res;
     std::size_t match = 0;
     for (auto i = 0; i < source.size(); ++i) {
@@ -474,14 +474,16 @@ struct NotFoundHandler : seasocks::PageHandler {
 };
 
 int main() {
-    seasocks::Server server(std::make_shared<seasocks::PrintfLogger>(seasocks::Logger::Level::Warning));
+    seasocks::Server server(std::make_shared<seasocks::PrintfLogger>(seasocks::Logger::Level::Info));
     server.addPageHandler(std::make_shared<ChatroomAuthHandler>());
     server.addPageHandler(std::make_shared<NotFoundHandler>());
     server.addWebSocketHandler("/chat", std::make_shared<ChatHandler>(), true);
+    std::cout << "Port and admin suffix: " << std::endl;
     std::cin >> port;
     std::cin >> admin_suffix;
     server.startListening(port);
     server.setStaticPath("web");
+    std::cout << "Starting Server.." << std::endl;
     server.loop();
     return 0;
 }
