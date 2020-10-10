@@ -74,7 +74,19 @@ function write_message(data) {
 
 function init() {
     clear_message();
-    login();
+    login_ip();
+    login_name();
+    while (username === "INFO") {
+        write_message({
+            from: "INFO",
+            msg: "User name not acceptable.",
+            is_private: true,
+            time: -1
+        });
+        
+        login_name();
+    }
+
     ws = new WebSocket(ip);
 
     ws.onopen = function () {
@@ -102,11 +114,14 @@ function init() {
     };
 }
 
-function login() {
+function login_ip() {
     let input_ip = window.prompt("[Connect] Input server");
     if (input_ip !== null) {
         ip = input_ip;
     }
+}
+
+function login_name() {
     username = window.prompt("[Login] Input your name");
 }
 
