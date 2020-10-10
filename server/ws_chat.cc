@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <fmt/core.h>
+#include <iostream>
 #include <seasocks/PageHandler.h>
 #include <seasocks/PrintfLogger.h>
 #include <seasocks/Server.h>
@@ -10,7 +11,7 @@
 #include <seasocks/WebSocket.h>
 #include <seasocks/util/Json.h>
 
-auto str_replace_all(std::string source, const std::string& f, const std::string& t) {
+auto str_replace_all(std::string &source, const std::string& f, const std::string& t) {
     std::string res;
     std::size_t match = 0;
     for (auto i = 0; i < source.size(); ++i) {
@@ -48,12 +49,14 @@ bool str_end_with(const std::string& source, const std::string& x) {
 }
 
 std::set<std::string> online_users;
+std::string admin_suffix;
+int port;
 
 std::string get_username(std::string name) {
     name = name.substr(0, std::min(name.size(), 80UL));
 
     str_replace_all(name, "*", "+");
-    str_replace_all(name, "@sudo", "**");
+    str_replace_all(name, admin_suffix, "**");
     str_replace_all(name, " ", "_");
     str_replace_all(name, "@", "#");
 
@@ -126,7 +129,7 @@ std::vector<std::string> disabled_commands;
 
 std::string rename(const std::shared_ptr<seasocks::Credentials>& source, const std::string& new_name) {
     std::string username = new_name;
-    if (str_end_with(username, "@sudo"))
+    if (str_end_with(username, admin_suffix))
         source->attributes["is_admin"] = "yes";
     else
         source->attributes["is_admin"] = "no";
@@ -475,7 +478,10 @@ int main() {
     server.addPageHandler(std::make_shared<ChatroomAuthHandler>());
     server.addPageHandler(std::make_shared<NotFoundHandler>());
     server.addWebSocketHandler("/chat", std::make_shared<ChatHandler>(), true);
-    server.startListening(8010);
+    std::cin >> port;
+    std::cin >> admin_suffix;
+    server.startListening(port);
+    server.setStaticPath("web");
     server.loop();
     return 0;
 }
