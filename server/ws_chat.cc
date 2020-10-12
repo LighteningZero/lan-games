@@ -474,7 +474,7 @@ struct NotFoundHandler : seasocks::PageHandler {
 };
 
 int main() {
-    seasocks::Server server(std::make_shared<seasocks::PrintfLogger>(seasocks::Logger::Level::Info));
+    seasocks::Server server(std::make_shared<seasocks::PrintfLogger>(seasocks::Logger::Level::Warning));
     server.addPageHandler(std::make_shared<ChatroomAuthHandler>());
     server.addPageHandler(std::make_shared<NotFoundHandler>());
     server.addWebSocketHandler("/chat", std::make_shared<ChatHandler>(), true);
