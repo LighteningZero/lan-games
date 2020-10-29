@@ -10,6 +10,7 @@ killing.cc
 .vscode/
 
 # store
-*.json
 *.list
 
+# node
+server/tank/node_modules
