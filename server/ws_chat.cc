@@ -267,6 +267,26 @@ std::string set_user_attributes(const std::string& from, const std::string& expr
     return matched_users;
 }
 
+void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<seasocks::WebSocket*>& all_socks);
+
+std::string run_script(seasocks::WebSocket* s, const std::set<seasocks::WebSocket*>& all_socks,
+                       std::stringstream& ss) {
+    std::string now_cmd, res;
+    res = "[";
+    while (ss.eof()) {
+        getline(ss, now_cmd);
+        run_command(now_cmd, s, all_socks);
+        if (s->verb() == seasocks::Request::Verb::Invalid)
+            return "";
+    }
+
+    if (res.size() > 1)
+        res.pop_back();
+
+    res.push_back(']');
+    return res;
+}
+
 void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<seasocks::WebSocket*>& all_socks) {
     std::string from = s->credentials()->username;
     std::stringstream ss;
@@ -415,6 +435,17 @@ void run_command(const std::string& c, seasocks::WebSocket* s, const std::set<se
         std::string expr, key, val;
         ss >> expr >> key >> val;
         send_message_cmd_res(s, c, set_user_attributes(from, expr, key, val, all_socks));
+    }
+
+    if (command_mark == "/script") {
+        if (!check_command("script")) {
+            send_message_cmd_disabled(s);
+            return;
+        }
+
+        std::string res = cmd::run_script(s, all_socks, ss);
+        if (res == "") return;
+        send_message_cmd_res(s, c, res);
     }
 }
 
