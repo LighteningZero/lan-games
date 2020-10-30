@@ -133,8 +133,8 @@ setInterval(() => {
     for (let id in bullets) {
         let this_bullet = bullets[id];
 
-        this_bullet.pos.x += Config.tanks.max_speed * Math.cos(this_bullet.dire);
-        this_bullet.pos.y += Config.tanks.max_speed * Math.sin(this_bullet.dire);
+        this_bullet.pos.x += Config.bullet.speed * Math.cos(this_bullet.dire);
+        this_bullet.pos.y += Config.bullet.speed * Math.sin(this_bullet.dire);
         if (check_crash_bullet(this_bullet) || check_outof_space(this_bullet.pos)) {
             bullets[id] = undefined;
         }
