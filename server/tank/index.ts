@@ -1,26 +1,11 @@
-import * as SocketIO from 'socket.io';
-import Config from './config';
-
-interface Position {
-    x: number,
-    y: number,
-}
-
-interface Tank {
-    pos: Position,
-    blood: number,
-    name: string,
-    can_safe_fire: boolean,
-    dire: number,
-    is_moving: boolean,
-    socket: SocketIO.Socket,
-}
-
-interface Bullet {
-    pos: Position,
-    dire: number,
-    level: number,
-}
+import SocketIO = require('socket.io');
+import Express = require('express');
+import http_server = require('http');
+import path = require('path');
+import Config from '../../shared/tank/config';
+import Position from '../../shared/tank/positions';
+import Tank from '../../shared/tank/tanks';
+import Bullet from '../../shared/tank/bullet';
 
 function get_random_position(): Position {
     let x = (Math.random() * 10000) % Config.space.width;
@@ -32,15 +17,27 @@ function get_random_direction(): number {
     return (Math.random() * 10000) % 360;
 }
 
-function create_tank(socket: SocketIO.Socket): Tank {
+// covert angle to radian
+function covert_degree(x: number): number {
+    return x * Math.PI / 180;
+}
+
+function get_line_slope(d: number): number {
+    return 1 / Math.tan(covert_degree(d));
+}
+
+function create_tank(id: string): Tank {
+    let dire = get_random_direction();
     return {
         pos: get_random_position(),
         blood: 1.0,
-        name: "<unnamed> " + socket.id,
+        name: "<unnamed> " + id,
         can_safe_fire: true,
-        dire: get_random_direction(),
+        tank_dire: dire,
+        gun_dire: dire,
+        radar_dire: dire,
         is_moving: false,
-        socket: socket,
+        id: id,
     };
 }
 
@@ -50,7 +47,7 @@ function create_bullet(tank: Tank, level: number) {
             x: tank.pos.x,
             y: tank.pos.y,
         },
-        dire: tank.dire,
+        dire: tank.gun_dire,
         level: level,
     });
 }
@@ -80,34 +77,80 @@ function check_outof_space(pos: Position) {
     return false;
 }
 
-const io = new SocketIO();
+const app = Express();
+const http = new http_server.Server(app);
+const io = new SocketIO(http);
 let bullets = new Array<Bullet>();
-let tanks = new Array<Tank>();
+let tanks = new Object();
+let socket_list = new Array<SocketIO.Socket>();
 
 io.on('connection', (socket: SocketIO.Socket) => {
-    let this_tank = create_tank(socket);
+    console.log("One tank joined: " + socket.id);
+
+    socket_list[socket.id] = socket;
+    let this_tank = create_tank(socket.id);
     tanks[socket.id] = this_tank;
 
     socket.on('disconnect', () => {
         console.log("One tank disconnected");
     });
 
-    socket.on('turn', (target: number) => {
-        let once_update: number = Config.game.update / Config.tanks.turn_speed;
-        if (target - this_tank.dire < 0) {
+    socket.on('turn-tank', (target: number) => {
+        let once_update: number = Config.tanks.turn_speed.tank / (1000 / Config.game.update);
+        if (target - this_tank.tank_dire < 0) {
             once_update *= -1;
         }
 
         let iid = setInterval(() => {
-            if (this_tank.dire == target) {
+            if (this_tank.tank_dire == target) {
                 clearInterval(iid);
                 return;
             }
 
-            if (Math.abs(target - this_tank.dire) < Math.abs(once_update)) {
-                this_tank.dire = target;
+            if (Math.abs(target - this_tank.tank_dire) < Math.abs(once_update)) {
+                this_tank.tank_dire = target;
             } else {
-                this_tank.dire += once_update;
+                this_tank.tank_dire += once_update;
+            }
+        }, Config.game.update);
+    });
+
+    socket.on('turn-gun', (target: number) => {
+        let once_update: number = Config.tanks.turn_speed.gun / (1000 / Config.game.update);
+        if (target - this_tank.gun_dire < 0) {
+            once_update *= -1;
+        }
+
+        let iid = setInterval(() => {
+            if (this_tank.gun_dire == target) {
+                clearInterval(iid);
+                return;
+            }
+
+            if (Math.abs(target - this_tank.gun_dire) < Math.abs(once_update)) {
+                this_tank.gun_dire = target;
+            } else {
+                this_tank.gun_dire += once_update;
+            }
+        }, Config.game.update);
+    });
+
+    socket.on('turn-radar', (target: number) => {
+        let once_update: number = Config.tanks.turn_speed.radar / (1000 / Config.game.update);
+        if (target - this_tank.radar_dire < 0) {
+            once_update *= -1;
+        }
+
+        let iid = setInterval(() => {
+            if (this_tank.radar_dire == target) {
+                clearInterval(iid);
+                return;
+            }
+
+            if (Math.abs(target - this_tank.radar_dire) < Math.abs(once_update)) {
+                this_tank.radar_dire = target;
+            } else {
+                this_tank.radar_dire += once_update;
             }
         }, Config.game.update);
     });
@@ -123,9 +166,9 @@ io.on('connection', (socket: SocketIO.Socket) => {
         create_bullet(this_tank, level);
     });
 
-    socket.on('move', (state: boolean) => {
-        this_tank.is_moving = state;
-    });
+    socket.on('move', (state: boolean) => { this_tank.is_moving = state; });
+
+    socket.on('set-name', (name: string) => { this_tank.name = name + "<" + socket.id + ">"; });
 });
 
 
@@ -133,18 +176,19 @@ setInterval(() => {
     for (let id in bullets) {
         let this_bullet = bullets[id];
 
-        this_bullet.pos.x += Config.bullet.speed * Math.cos(this_bullet.dire);
-        this_bullet.pos.y += Config.bullet.speed * Math.sin(this_bullet.dire);
+        this_bullet.pos.x += Config.bullet.speed * Math.cos(covert_degree(this_bullet.dire));
+        this_bullet.pos.y += Config.bullet.speed * Math.sin(covert_degree(this_bullet.dire));
         if (check_crash_bullet(this_bullet) || check_outof_space(this_bullet.pos)) {
-            bullets[id] = undefined;
+            delete bullets[id];
         }
     }
 
     for (let id in tanks) {
         let this_tank = tanks[id];
         if (this_tank.blood <= 0) {
-            this_tank.socket.disconnect();
-            tanks[id] = undefined;
+            let this_socket: SocketIO.Socket = socket_list[this_tank.id];
+            this_socket.disconnect();
+            delete tanks[id];
             continue;
         }
 
@@ -152,8 +196,8 @@ setInterval(() => {
             continue;
         }
 
-        this_tank.pos.x += Config.tanks.max_speed * Math.cos(this_tank.dire);
-        this_tank.pos.y += Config.tanks.max_speed * Math.sin(this_tank.dire);
+        this_tank.pos.x += Config.tanks.max_speed * Math.cos(covert_degree(this_tank.tank_dire));
+        this_tank.pos.y += Config.tanks.max_speed * Math.sin(covert_degree(this_tank.tank_dire));
 
         if (check_outof_space(this_tank.pos)) {
             this_tank.blood -= Config.tanks.crash_damage;
@@ -169,5 +213,5 @@ setInterval(() => {
     io.emit("update", { tanks: tanks, bullets: bullets });
 }, Config.game.update);
 
-io.listen(3000);
-console.log("Server started.");
+app.use('/client', Express.static(path.resolve(__dirname + '../../../client/WS-tank')));
+http.listen(3000, () => { console.log("Server started on Port 3000."); });

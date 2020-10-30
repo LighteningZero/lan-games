@@ -13,4 +13,8 @@ killing.cc
 *.list
 
 # node
-server/tank/node_modules
+**/node_modules
+**/dist
+
+# typescript
+*.js
