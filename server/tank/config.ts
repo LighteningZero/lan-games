@@ -15,7 +15,8 @@ const Config = {
         size: 50,
     },
     bullet: {
-        damage: [0.2]
+        damage: [0.2],
+        speed: 15.2,
     },
 };
 
