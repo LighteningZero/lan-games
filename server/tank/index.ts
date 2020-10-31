@@ -42,23 +42,27 @@ function create_tank(id: string): Tank {
 }
 
 function create_bullet(tank: Tank, level: number) {
-    bullets.push({
+    let this_bullet: Bullet = {
         pos: {
             x: tank.pos.x,
             y: tank.pos.y,
         },
         dire: tank.gun_dire,
         level: level,
-    });
+        source: tank.id,
+    };
+    bullets.push(this_bullet);
 }
 
 function check_crash_bullet(bullet: Bullet) {
     for (let id in tanks) {
+        if (bullet.source === id) { continue; }
+
         let this_tank = tanks[id];
-        if (bullet.pos.x > this_tank.pos.x - Config.tanks.size / 2
-            && bullet.pos.x < this_tank.pos.x + Config.tanks.size / 2
-            && bullet.pos.y > this_tank.pos.y - Config.tanks.size / 2
-            && bullet.pos.y < this_tank.pos.y + Config.tanks.size / 2) {
+        if (bullet.pos.x >= this_tank.pos.x - Config.tanks.size / 2
+            && bullet.pos.x <= this_tank.pos.x + Config.tanks.size / 2
+            && bullet.pos.y >= this_tank.pos.y - Config.tanks.size / 2
+            && bullet.pos.y <= this_tank.pos.y + Config.tanks.size / 2) {
             this_tank.blood -= Config.bullet.damage[bullet.level];
             return true;
         }
@@ -92,7 +96,8 @@ io.on('connection', (socket: SocketIO.Socket) => {
     tanks[socket.id] = this_tank;
 
     socket.on('disconnect', () => {
-        console.log("One tank disconnected");
+        delete tanks[socket.id];
+        console.log("One tank disconnected.");
     });
 
     socket.on('turn-tank', (target: number) => {
@@ -179,7 +184,7 @@ setInterval(() => {
         this_bullet.pos.x += Config.bullet.speed * Math.cos(covert_degree(this_bullet.dire));
         this_bullet.pos.y += Config.bullet.speed * Math.sin(covert_degree(this_bullet.dire));
         if (check_crash_bullet(this_bullet) || check_outof_space(this_bullet.pos)) {
-            delete bullets[id];
+            bullets.splice(<number><any>id, 1);
         }
     }
 

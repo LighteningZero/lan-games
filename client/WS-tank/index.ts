@@ -4,7 +4,7 @@ import Tank from '../../shared/tank/tanks';
 import Bullet from '../../shared/tank/bullet';
 import ui from './ui';
 import Config from '../../shared/tank/config';
-import { start_code, scan_tanks } from './api';
+import { start_code, update_tanks } from './api';
 
 let socket: SocketIOClient.Socket;
 let tanks: Array<Tank>;
@@ -36,21 +36,21 @@ function start() {
 	});
 
 	socket.on('disconnect', function () {
-		message('Killed. Disconnected.');
+		message('[Disconnect]You are killed.');
 		on_stop();
 	});
 
 	socket.on('update', function (info) {
 		tanks = info.tanks;
 		bullets = info.bullets;
-		ui(tanks, bullets);
-		scan_tanks();
+		ui(tanks, bullets, socket);
+		update_tanks(tanks);
 		code_loaded = true;
 	});
 
-	let parsed_code = new Function("tk", code);
+	let parsed_code = new Function('tk', 'd', code);
 	load_tank_code.then(() => {
-		message('Tank Codes Loaded.');
+		message('Tank control codes loaded.');
 		start_code(parsed_code, tanks, socket);
 	});
 }
@@ -62,7 +62,6 @@ function stop() {
 
 function on_stop() {
 	$('#stop-button').attr("disabled", "true");
-	$('#start-button').removeAttr("disabled");
 }
 
 $(function () {

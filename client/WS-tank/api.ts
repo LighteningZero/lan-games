@@ -75,20 +75,22 @@ class tank {
     }
 
     scan(): void {
-        let upper_slope = get_line_slope(this.this_tank.radar_dire + Config.tanks.radar_size);
-        let lower_slope = get_line_slope(this.this_tank.radar_dire - Config.tanks.radar_size);
+        let radar_angle = this.this_tank.radar_dire;
+        let upper_slope = get_line_slope(radar_angle + Config.tanks.radar_size);
+        let lower_slope = get_line_slope(radar_angle - Config.tanks.radar_size);
         for (let id in tanks) {
             let element = tanks[id];
             if (element.id == this.this_tank.id) { return; }
 
-            let target_slope = element.pos.x / element.pos.y;
-            if (lower_slope >= target_slope && upper_slope <= target_slope) {
+            let target_slope = (this.this_tank.pos.x - element.pos.x) / (this.this_tank.pos.y - element.pos.y);
+            if (upper_slope <= target_slope && target_slope <= lower_slope) {
+                console.log(upper_slope, lower_slope, target_slope);
                 // scanned
                 this.on_scan_callback({
                     x: element.pos.x,
                     y: element.pos.y,
                     name: element.name,
-                });
+                }, radar_angle);
             }
         };
     }
@@ -108,6 +110,10 @@ class tank {
             callback();
         }, Config.game.update);
     }
+
+    _update() {
+        this.this_tank = tanks[socket.id];
+    }
 }
 
 let t: tank;
@@ -121,8 +127,10 @@ function get_line_slope(d: number): number {
     return 1 / Math.tan(covert_degree(d));
 }
 
-function scan_tanks() {
+function update_tanks(all_tanks: Tank[]) {
+    tanks = all_tanks;
     if (t === undefined) { return; }
+    t._update();
     t.scan();
 }
 
@@ -132,10 +140,11 @@ function start_code(parsed_code: Function, _tanks: Tank[], _socket: SocketIOClie
 
     let this_tank = tanks[socket.id];
     t = new tank(this_tank);
-    parsed_code(t);
+    let costum_var = {};
+    parsed_code(t, costum_var);
 }
 
 export {
     start_code,
-    scan_tanks
+    update_tanks
 };
