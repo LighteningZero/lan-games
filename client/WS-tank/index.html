@@ -1,25 +1,63 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="Content-Type" content="charset=utf-8">
-        <title>tanks</title>
-    </head>
-    <body>
+
+<head>
+    <meta http-equiv="Content-Type" content="charset=utf-8">
+    <title>tanks</title>
+</head>
+
+<body>
+    <main>
         <canvas height="800px" width="1000px" id="space"></canvas>
-        <textarea id="code" placeholder="Paste your code here..."></textarea>
-        <input id="server" type="text" placeholder="Server Here...">
-        <button id="start-button">Start</button>
-        <button id="stop-button">Stop</button>
-        <div id="message"></div>
-        <style>
-            #space {
-                border: 1px solid #000000;
-            }
-            #message {
-                background-color: antiquewhite;
-                color: gray;
-            }
-        </style>
-    </body>
-    <script src="./dist/entry.js"></script>
+        <div class="control">
+            <textarea id="code" placeholder="Paste your code here..."></textarea>
+            <button id="start-button">Start</button>
+            <button id="stop-button">Stop</button>
+        </div>
+    </main>
+    <div id="message"></div>
+    <style>
+        #space {
+            border: 1px solid #000000;
+        }
+
+        #message {
+            margin-top: 25px;
+            position: sticky;
+            display: flex;
+            justify-content: center;
+            background-color: darkslategrey;
+            color: whitesmoke;
+            bottom: 0;
+        }
+
+        #code {
+            height: auto;
+            min-width: 100%;
+            min-height: 750px;
+            overflow: scroll;
+        }
+
+        #start-button {
+            float: left;
+        }
+
+        #stop-button {
+            float: right;
+        }
+
+        .control {
+            flex: 500px;
+            height: 100%;
+        }
+
+        main {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+    </style>
+</body>
+<script src="./dist/entry.js"></script>
+
 </html>

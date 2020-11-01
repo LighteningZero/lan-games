@@ -18,7 +18,7 @@ function start() {
 	$("#stop-button").removeAttr("disabled");
 	$('#start-button').attr("disabled", "true");
 
-	let s: string = $('#server').val().toString();
+	let s: string = '/';
 	let code: string = $('#code').val().toString();
 	let code_loaded: boolean = false;
 	let load_tank_code = new Promise((resolve) => {
@@ -48,7 +48,7 @@ function start() {
 		code_loaded = true;
 	});
 
-	let parsed_code = new Function('tk', 'd', code);
+	let parsed_code = new Function('tk', '$', code);
 	load_tank_code.then(() => {
 		message('Tank control codes loaded.');
 		start_code(parsed_code, tanks, socket);
@@ -66,9 +66,9 @@ function on_stop() {
 
 $(function () {
 	console.log("Init");
-	$('#server').val('/');
 	$('#start-button').on('click', start);
 	$('#stop-button').on('click', stop);
 
 	$('#stop-button').attr("disabled", "true");
+	message('Client loaded.');
 });
