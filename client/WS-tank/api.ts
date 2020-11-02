@@ -80,7 +80,7 @@ class tank {
         let lower_slope = get_line_slope(radar_angle - Config.tanks.radar_size);
         for (let id in tanks) {
             let element = tanks[id];
-            if (element.id == this.this_tank.id) { return; }
+            if (element.id == this.this_tank.id) { continue; }
 
             let target_slope = (this.this_tank.pos.x - element.pos.x) / (this.this_tank.pos.y - element.pos.y);
             if (upper_slope <= target_slope && target_slope <= lower_slope) {
